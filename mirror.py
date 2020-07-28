@@ -159,6 +159,9 @@ class MirrorHandler(BaseHandler):
 
     base_url = 'https://igrovyeaftomatyc.ml'
 
+    self.error(403)
+          return True
+
     if self.is_recursive_request():
       return
 
