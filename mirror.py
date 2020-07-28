@@ -157,10 +157,7 @@ class BaseHandler(webapp2.RequestHandler):
 class MirrorHandler(BaseHandler):
   def get(self, base_url):
 
-    base_url = 'https://igrovyeaftomatyc.ml'
-
-    self.error(403)
-          return True
+    base_url = 'igrovyeaftomatyc.ml'
 
     if self.is_recursive_request():
       return
@@ -181,14 +178,11 @@ class MirrorHandler(BaseHandler):
     key_name = get_url_key_name(mirrored_url)
     logging.info("Handling request for '%s' = '%s'", mirrored_url, key_name)
 
-    content = MirroredContent.get_by_key_name(key_name)
-    cache_miss = False
-    if content is None:
-      logging.debug("Cache miss")
-      cache_miss = True
-      content = MirroredContent.fetch_and_store(key_name, base_url,
-                                                translated_address,
-                                                mirrored_url)
+    logging.debug("Cache miss")
+          cache_miss = True
+          content = MirroredContent.fetch_and_store(key_name, base_url,
+                                                    translated_address,
+                                                    mirrored_url)
     if content is None:
       return self.error(404)
 
