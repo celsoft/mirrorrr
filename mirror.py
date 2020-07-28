@@ -157,7 +157,7 @@ class BaseHandler(webapp2.RequestHandler):
 class MirrorHandler(BaseHandler):
   def get(self, base_url):
 
-    base_url = "igrovyeaftomatyc.ml"
+    base_url = 'https://igrovyeaftomatyc.ml'
 
     if self.is_recursive_request():
       return
@@ -201,7 +201,4 @@ class MirrorHandler(BaseHandler):
 
 app = webapp2.WSGIApplication([
   (r"/", MirrorHandler),
-  #(r"/main", HomeHandler),
-  #(r"/_ah/warmup", WarmupHandler),
-  #(r"/([^/]+).*", MirrorHandler),
 ], debug=DEBUG)
