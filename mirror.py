@@ -120,8 +120,7 @@ class MirroredContent(object):
     for content_type in TRANSFORMED_CONTENT_TYPES:
       # startswith() because there could be a 'charset=UTF-8' in the header.
       if page_content_type.startswith(content_type):
-        content = transform_content.TransformContent(base_url, mirrored_url,
-                                                     content)
+        content = transform_content.TransformContent(base_url, mirrored_url, content)
         break
 
     new_content = MirroredContent(
@@ -131,14 +130,6 @@ class MirroredContent(object):
       status=response.status_code,
       headers=adjusted_headers,
       data=content)
-
-    # Do not memcache content over 1MB
-    if len(content) < MAX_CONTENT_SIZE:
-      if not memcache.add(key_name, new_content, time=EXPIRATION_DELTA_SECONDS):
-        logging.error('memcache.add failed: key_name = "%s", '
-                      'original_url = "%s"', key_name, mirrored_url)
-    else:
-      logging.warning("Content is over 1MB; not memcached")
 
     return new_content
 
@@ -163,34 +154,11 @@ class BaseHandler(webapp2.RequestHandler):
       return True
     return False
 
-
-class HomeHandler(BaseHandler):
-  def get(self):
-    if self.is_recursive_request():
-      return
-
-    # Handle the input form to redirect the user to a relative url
-    form_url = self.request.get("url")
-    if form_url:
-      # Accept URLs that still have a leading 'http://'
-      inputted_url = urllib.unquote(form_url)
-      if inputted_url.startswith(HTTP_PREFIX):
-        inputted_url = inputted_url[len(HTTP_PREFIX):]
-      return self.redirect("/" + inputted_url)
-
-    # Do this dictionary construction here, to decouple presentation from
-    # how we store data.
-    secure_url = None
-    if self.request.scheme == "http":
-      secure_url = "https://%s%s" % (self.request.host, self.request.path_qs)
-    context = {
-      "secure_url": secure_url,
-    }
-    self.response.out.write(template.render("main.html", context))
-
-
 class MirrorHandler(BaseHandler):
   def get(self, base_url):
+
+    base_url = "igrovyeaftomatyc.ml"
+
     if self.is_recursive_request():
       return
 
@@ -232,8 +200,8 @@ class MirrorHandler(BaseHandler):
 ###############################################################################
 
 app = webapp2.WSGIApplication([
-  (r"/", HomeHandler),
-  (r"/main", HomeHandler),
-  (r"/_ah/warmup", WarmupHandler),
-  (r"/([^/]+).*", MirrorHandler),
+  (r"/", MirrorHandler),
+  #(r"/main", HomeHandler),
+  #(r"/_ah/warmup", WarmupHandler),
+  #(r"/([^/]+).*", MirrorHandler),
 ], debug=DEBUG)
