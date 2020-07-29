@@ -37,7 +37,7 @@ SAME_DIR_URL_REGEX = r"(?!(/)|(http(s?)://)|(url\())(?P<url>[^\"'> \t\)]+)"
 ROOT_DIR_URL_REGEX = r"(?!//(?!>))/(?P<url>)(?=[ \t\n]*[\"'\)>/])"
 
 # Start of a tag using 'src' or 'href'
-TAG_START = r"(?i)\b(?P<tag>src|href|action|url|background)(?P<equals>[\t ]*=[\t ]*)(?P<quote>[\"']?)"
+TAG_START = r"(?i)\b(?P<tag>src|action|url|background)(?P<equals>[\t ]*=[\t ]*)(?P<quote>[\"']?)"
 
 # Start of a CSS import
 CSS_IMPORT_START = r"(?i)@import(?P<spacing>[\t ]+)(?P<quote>[\"']?)"
@@ -54,7 +54,7 @@ REPLACEMENT_REGEXES = [
      "\g<tag>\g<equals>\g<quote>%(accessed_dir)s/\g<relative>/\g<url>"),
 
   (TAG_START + BASE_RELATIVE_URL_REGEX,
-     "\g<tag>\g<equals>\g<quote>/%(base)s/\g<url>"),
+     "\g<tag>\g<equals>\g<quote>%(base)s/\g<url>"),
 
   (TAG_START + ROOT_DIR_URL_REGEX,
      "\g<tag>\g<equals>\g<quote>/%(base)s/"),
@@ -92,15 +92,10 @@ REPLACEMENT_REGEXES = [
 ################################################################################
 
 def TransformContent(base_url, accessed_url, content):
-  url_obj = urlparse.urlparse(accessed_url)
-  accessed_dir = os.path.dirname(url_obj.path)
-  if not accessed_dir.endswith("/"):
-    accessed_dir += "/"
-
-  for pattern, replacement in REPLACEMENT_REGEXES:
-    fixed_replacement = replacement % {
-      "base": base_url,
-      "accessed_dir": accessed_dir,
-    }
-    content = re.sub(pattern, fixed_replacement, content)
-  return content
+  #for pattern, replacement in REPLACEMENT_REGEXES:
+    #fixed_replacement = replacement % {
+    #  "base": 'https://igrovyeaftomatyc.ml',
+    #  "accessed_dir": '123',
+    #}
+    #content = re.sub(pattern, fixed_replacement, content)
+  return content.replace('https://igrovyeaftomatyc.ml/', '/')

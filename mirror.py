@@ -39,7 +39,7 @@ EXPIRATION_DELTA_SECONDS = 3600
 # DEBUG = True
 # EXPIRATION_DELTA_SECONDS = 10
 
-HTTP_PREFIX = "http://"
+HTTPS_PREFIX = "https://"
 
 IGNORE_HEADERS = frozenset([
   "set-cookie",
@@ -66,13 +66,6 @@ MAX_CONTENT_SIZE = 10 ** 6 - 600
 
 ###############################################################################
 
-def get_url_key_name(url):
-  url_hash = hashlib.sha256()
-  url_hash.update(url)
-  return "hash_" + url_hash.hexdigest()
-
-###############################################################################
-
 class MirroredContent(object):
   def __init__(self, original_address, translated_address,
                status, headers, data, base_url):
@@ -84,15 +77,10 @@ class MirroredContent(object):
     self.base_url = base_url
 
   @staticmethod
-  def get_by_key_name(key_name):
-    return memcache.get(key_name)
-
-  @staticmethod
-  def fetch_and_store(key_name, base_url, translated_address, mirrored_url):
+  def fetch_and_store(base_url, translated_address, mirrored_url):
     """Fetch and cache a page.
 
     Args:
-      key_name: Hash to use to store the cached page.
       base_url: The hostname of the page that's being mirrored.
       translated_address: The URL of the mirrored page on this site.
       mirrored_url: The URL of the original page. Hostname should match
@@ -102,11 +90,14 @@ class MirroredContent(object):
       A new MirroredContent object, if the page was successfully retrieved.
       None if any errors occurred or the content could not be retrieved.
     """
-    logging.debug("Fetching '%s'", mirrored_url)
+
+    #logging.info('Base_url = "%s", mirrored_url = "%s"', base_url, mirrored_url)
+
+    #logging.info("Fetching '%s'", mirrored_url)
     try:
       response = urlfetch.fetch(mirrored_url)
     except (urlfetch.Error, apiproxy_errors.Error):
-      logging.exception("Could not fetch URL")
+      logging.info("Could not fetch URL")
       return None
 
     adjusted_headers = {}
@@ -116,6 +107,7 @@ class MirroredContent(object):
         adjusted_headers[adjusted_key] = value
 
     content = response.content
+    #logging.info("content '%s'", content)
     page_content_type = adjusted_headers.get("content-type", "")
     for content_type in TRANSFORMED_CONTENT_TYPES:
       # startswith() because there could be a 'charset=UTF-8' in the header.
@@ -139,14 +131,12 @@ class WarmupHandler(webapp2.RequestHandler):
   def get(self):
     pass
 
-
 class BaseHandler(webapp2.RequestHandler):
   def get_relative_url(self):
     slash = self.request.url.find("/", len(self.request.scheme + "://"))
     if slash == -1:
       return "/"
     return self.request.url[slash:]
-
   def is_recursive_request(self):
     if "AppEngine-Google" in self.request.headers.get("User-Agent", ""):
       logging.warning("Ignoring recursive request by user-agent=%r; ignoring")
@@ -157,32 +147,25 @@ class BaseHandler(webapp2.RequestHandler):
 class MirrorHandler(BaseHandler):
   def get(self, base_url):
 
-    base_url = 'igrovyeaftomatyc.ml'
-
     if self.is_recursive_request():
       return
 
-    assert base_url
+    base_url = 'igrovyeaftomatyc.ml'
 
     # Log the user-agent and referrer, to see who is linking to us.
-    logging.debug('User-Agent = "%s", Referrer = "%s"',
-                  self.request.user_agent,
-                  self.request.referer)
-    logging.debug('Base_url = "%s", url = "%s"', base_url, self.request.url)
+    #logging.info('User-Agent = "%s", Referrer = "%s"', self.request.user_agent, self.request.referer)
+    #logging.info('Base_url = "%s", url = "%s"', base_url, self.request.url)
 
-    translated_address = self.get_relative_url()[1:]  # remove leading /
-    mirrored_url = HTTP_PREFIX + translated_address
+    translated_address = self.get_relative_url()  # remove leading /
+    logging.info("translated_address '%s'", translated_address)
+    mirrored_url = HTTPS_PREFIX + base_url + translated_address
 
-    # Use sha256 hash instead of mirrored url for the key name, since key
-    # names can only be 500 bytes in length; URLs may be up to 2KB.
-    key_name = get_url_key_name(mirrored_url)
-    logging.info("Handling request for '%s' = '%s'", mirrored_url, key_name)
+    #logging.info("Handling request for '%s'", mirrored_url)
 
-    logging.debug("Cache miss")
-          cache_miss = True
-          content = MirroredContent.fetch_and_store(key_name, base_url,
-                                                    translated_address,
-                                                    mirrored_url)
+    content = MirroredContent.fetch_and_store(base_url,
+                                                translated_address,
+                                                mirrored_url)
+                                                
     if content is None:
       return self.error(404)
 
@@ -194,8 +177,35 @@ class MirrorHandler(BaseHandler):
 
     self.response.out.write(content.data)
 
+class HomeHandler(BaseHandler):
+  def get(self):
+
+    if self.is_recursive_request():
+      return
+
+    form_url = HTTPS_PREFIX + 'igrovyeaftomatyc.ml'
+    if form_url:
+      # Accept URLs that still have a leading 'http://'
+      inputted_url = urllib.unquote(form_url)
+      logging.info("inputted_url '%s'", inputted_url)
+
+      content = MirroredContent.fetch_and_store(form_url, form_url, form_url)
+
+      if content is None:
+        return self.error(404)
+
+      for key, value in content.headers.iteritems():
+        self.response.headers[key] = value
+      if not DEBUG:
+        self.response.headers["cache-control"] = \
+          "max-age=%d" % EXPIRATION_DELTA_SECONDS
+
+      self.response.out.write(content.data)
+
 ###############################################################################
 
 app = webapp2.WSGIApplication([
-  (r"/", MirrorHandler),
+  (r"/", HomeHandler),
+  (r"/([^/]+).*", MirrorHandler),
+  (r"/_ah/warmup", WarmupHandler),
 ], debug=DEBUG)
