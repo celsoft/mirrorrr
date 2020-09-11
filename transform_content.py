@@ -98,4 +98,4 @@ def TransformContent(base_url, accessed_url, content):
     #  "accessed_dir": '123',
     #}
     #content = re.sub(pattern, fixed_replacement, content)
-  return content.replace('https://apparatov.net/', '/')
+  return content.replace('https://igrovyeavtomatynadengi.net/', '/')
