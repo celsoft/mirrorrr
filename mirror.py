@@ -150,7 +150,7 @@ class MirrorHandler(BaseHandler):
     if self.is_recursive_request():
       return
 
-    base_url = 'igrovyeavtomatynadengi.net'
+    base_url = 'joycasino-sayt-oficialniy.com'
 
     # Log the user-agent and referrer, to see who is linking to us.
     #logging.info('User-Agent = "%s", Referrer = "%s"', self.request.user_agent, self.request.referer)
@@ -183,7 +183,7 @@ class HomeHandler(BaseHandler):
     if self.is_recursive_request():
       return
 
-    form_url = HTTPS_PREFIX + 'igrovyeavtomatynadengi.net'
+    form_url = HTTPS_PREFIX + 'joycasino-sayt-oficialniy.com'
     if form_url:
       # Accept URLs that still have a leading 'http://'
       inputted_url = urllib.unquote(form_url)
