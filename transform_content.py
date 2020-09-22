@@ -45,7 +45,6 @@ CSS_IMPORT_START = r"(?i)@import(?P<spacing>[\t ]+)(?P<quote>[\"']?)"
 # CSS url() call
 CSS_URL_START = r"(?i)\burl\((?P<quote>[\"']?)"
 
-
 REPLACEMENT_REGEXES = [
   (TAG_START + SAME_DIR_URL_REGEX,
      "\g<tag>\g<equals>\g<quote>%(accessed_dir)s\g<url>"),
@@ -92,10 +91,4 @@ REPLACEMENT_REGEXES = [
 ################################################################################
 
 def TransformContent(base_url, accessed_url, content):
-  #for pattern, replacement in REPLACEMENT_REGEXES:
-    #fixed_replacement = replacement % {
-    #  "base": 'https://igrovyeaftomatyc.ml',
-    #  "accessed_dir": '123',
-    #}
-    #content = re.sub(pattern, fixed_replacement, content)
-  return content.replace('https://joycasino-sayt-oficialniy.com/', '/')
+  return content.replace('https://igrovyeavtomatyc.com/', '/')

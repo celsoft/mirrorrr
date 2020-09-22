@@ -77,7 +77,7 @@ class MirroredContent(object):
     self.base_url = base_url
 
   @staticmethod
-  def fetch_and_store(base_url, translated_address, mirrored_url):
+  def fetch_and_store(base_url, translated_address, mirrored_url, user_agent):
     """Fetch and cache a page.
 
     Args:
@@ -95,7 +95,7 @@ class MirroredContent(object):
 
     #logging.info("Fetching '%s'", mirrored_url)
     try:
-      response = urlfetch.fetch(mirrored_url)
+      response = urlfetch.fetch(mirrored_url, headers = {'User-Agent': user_agent, 'App-Engine': 'true'})
     except (urlfetch.Error, apiproxy_errors.Error):
       logging.info("Could not fetch URL")
       return None
@@ -150,7 +150,7 @@ class MirrorHandler(BaseHandler):
     if self.is_recursive_request():
       return
 
-    base_url = 'joycasino-sayt-oficialniy.com'
+    base_url = 'igrovyeavtomatyc.com'
 
     # Log the user-agent and referrer, to see who is linking to us.
     #logging.info('User-Agent = "%s", Referrer = "%s"', self.request.user_agent, self.request.referer)
@@ -162,10 +162,8 @@ class MirrorHandler(BaseHandler):
 
     #logging.info("Handling request for '%s'", mirrored_url)
 
-    content = MirroredContent.fetch_and_store(base_url,
-                                                translated_address,
-                                                mirrored_url)
-                                                
+    content = MirroredContent.fetch_and_store(base_url, translated_address, mirrored_url, self.request.headers.get("User-Agent", ""))
+
     if content is None:
       return self.error(404)
 
@@ -183,13 +181,13 @@ class HomeHandler(BaseHandler):
     if self.is_recursive_request():
       return
 
-    form_url = HTTPS_PREFIX + 'joycasino-sayt-oficialniy.com'
+    form_url = HTTPS_PREFIX + 'igrovyeavtomatyc.com'
     if form_url:
       # Accept URLs that still have a leading 'http://'
       inputted_url = urllib.unquote(form_url)
       logging.info("inputted_url '%s'", inputted_url)
 
-      content = MirroredContent.fetch_and_store(form_url, form_url, form_url)
+      content = MirroredContent.fetch_and_store(form_url, form_url, form_url, self.request.headers.get("User-Agent", ""))
 
       if content is None:
         return self.error(404)
