@@ -77,7 +77,7 @@ class MirroredContent(object):
     self.base_url = base_url
 
   @staticmethod
-  def fetch_and_store(base_url, translated_address, mirrored_url, user_agent):
+  def fetch_and_store(base_url, translated_address, mirrored_url, user_agent, referer):
     """Fetch and cache a page.
 
     Args:
@@ -95,7 +95,11 @@ class MirroredContent(object):
 
     #logging.info("Fetching '%s'", mirrored_url)
     try:
-      response = urlfetch.fetch(mirrored_url, headers = {'User-Agent': user_agent, 'App-Engine': 'true'})
+      response = urlfetch.fetch(mirrored_url, headers = {
+        'User-Agent': user_agent,
+        'App-Engine': 'true',
+        'Referer': referer
+      })
     except (urlfetch.Error, apiproxy_errors.Error):
       logging.info("Could not fetch URL")
       return None
@@ -150,7 +154,7 @@ class MirrorHandler(BaseHandler):
     if self.is_recursive_request():
       return
 
-    base_url = 'apparatov.net'
+    base_url = 'igrovyeavtomatynadengi.net'
 
     # Log the user-agent and referrer, to see who is linking to us.
     #logging.info('User-Agent = "%s", Referrer = "%s"', self.request.user_agent, self.request.referer)
@@ -162,7 +166,7 @@ class MirrorHandler(BaseHandler):
 
     #logging.info("Handling request for '%s'", mirrored_url)
 
-    content = MirroredContent.fetch_and_store(base_url, translated_address, mirrored_url, self.request.headers.get("User-Agent", ""))
+    content = MirroredContent.fetch_and_store(base_url, translated_address, mirrored_url, self.request.headers.get("User-Agent", ""), self.request.headers.get("Referer", ""))
 
     if content is None:
       return self.error(404)
@@ -181,7 +185,7 @@ class HomeHandler(BaseHandler):
     if self.is_recursive_request():
       return
 
-    form_url = HTTPS_PREFIX + 'apparatov.net'
+    form_url = HTTPS_PREFIX + 'igrovyeavtomatynadengi.net'
     if form_url:
       # Accept URLs that still have a leading 'http://'
       inputted_url = urllib.unquote(form_url)
