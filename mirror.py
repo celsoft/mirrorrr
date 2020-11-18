@@ -191,7 +191,7 @@ class HomeHandler(BaseHandler):
       inputted_url = urllib.unquote(form_url)
       logging.info("inputted_url '%s'", inputted_url)
 
-      content = MirroredContent.fetch_and_store(form_url, form_url, form_url, self.request.headers.get("User-Agent", ""))
+      content = MirroredContent.fetch_and_store(form_url, form_url, form_url, self.request.headers.get("User-Agent", ""), self.request.headers.get("Referer", ""))
 
       if content is None:
         return self.error(404)
