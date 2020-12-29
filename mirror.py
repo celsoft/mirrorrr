@@ -154,7 +154,7 @@ class MirrorHandler(BaseHandler):
     if self.is_recursive_request():
       return
 
-    base_url = 'igrovye-avtomaty-na-dengi.co'
+    base_url = 'igrovyeavtomatyc.com'
 
     # Log the user-agent and referrer, to see who is linking to us.
     #logging.info('User-Agent = "%s", Referrer = "%s"', self.request.user_agent, self.request.referer)
@@ -185,7 +185,7 @@ class HomeHandler(BaseHandler):
     if self.is_recursive_request():
       return
 
-    form_url = HTTPS_PREFIX + 'igrovye-avtomaty-na-dengi.co'
+    form_url = HTTPS_PREFIX + 'igrovyeavtomatyc.com'
     if form_url:
       # Accept URLs that still have a leading 'http://'
       inputted_url = urllib.unquote(form_url)

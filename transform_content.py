@@ -91,4 +91,4 @@ REPLACEMENT_REGEXES = [
 ################################################################################
 
 def TransformContent(base_url, accessed_url, content):
-  return content.replace('https://igrovye-avtomaty-na-dengi.co/', '/')
+  return content.replace('https://igrovyeavtomatyc.com/', '/')
