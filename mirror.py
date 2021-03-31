@@ -42,43 +42,44 @@ EXPIRATION_DELTA_SECONDS = 3600
 HTTPS_PREFIX = "https://"
 
 IGNORE_HEADERS = frozenset([
-  "set-cookie",
-  "expires",
-  "cache-control",
+    "set-cookie",
+    "expires",
+    "cache-control",
 
-  # Ignore hop-by-hop headers
-  "connection",
-  "keep-alive",
-  "proxy-authenticate",
-  "proxy-authorization",
-  "te",
-  "trailers",
-  "transfer-encoding",
-  "upgrade",
+    # Ignore hop-by-hop headers
+    "connection",
+    "keep-alive",
+    "proxy-authenticate",
+    "proxy-authorization",
+    "te",
+    "trailers",
+    "transfer-encoding",
+    "upgrade",
 ])
 
 TRANSFORMED_CONTENT_TYPES = frozenset([
-  "text/html",
-  "text/css",
+    "text/html",
+    "text/css",
 ])
 
 MAX_CONTENT_SIZE = 10 ** 6 - 600
 
+
 ###############################################################################
 
 class MirroredContent(object):
-  def __init__(self, original_address, translated_address,
-               status, headers, data, base_url):
-    self.original_address = original_address
-    self.translated_address = translated_address
-    self.status = status
-    self.headers = headers
-    self.data = data
-    self.base_url = base_url
+    def __init__(self, original_address, translated_address,
+                 status, headers, data, base_url):
+        self.original_address = original_address
+        self.translated_address = translated_address
+        self.status = status
+        self.headers = headers
+        self.data = data
+        self.base_url = base_url
 
-  @staticmethod
-  def fetch_and_store(base_url, translated_address, mirrored_url, user_agent, referer):
-    """Fetch and cache a page.
+    @staticmethod
+    def fetch_and_store(base_url, translated_address, mirrored_url, user_agent, referer, ip):
+        """Fetch and cache a page.
 
     Args:
       base_url: The hostname of the page that's being mirrored.
@@ -91,123 +92,137 @@ class MirroredContent(object):
       None if any errors occurred or the content could not be retrieved.
     """
 
-    #logging.info('Base_url = "%s", mirrored_url = "%s"', base_url, mirrored_url)
+        # logging.info('Base_url = "%s", mirrored_url = "%s"', base_url, mirrored_url)
 
-    #logging.info("Fetching '%s'", mirrored_url)
-    try:
-      response = urlfetch.fetch(mirrored_url, headers = {
-        'User-Agent': user_agent,
-        'App-Engine': 'true',
-        'Referer': referer
-      })
-    except (urlfetch.Error, apiproxy_errors.Error):
-      logging.info("Could not fetch URL")
-      return None
+        # logging.info("Fetching '%s'", mirrored_url)
 
-    adjusted_headers = {}
-    for key, value in response.headers.iteritems():
-      adjusted_key = key.lower()
-      if adjusted_key not in IGNORE_HEADERS:
-        adjusted_headers[adjusted_key] = value
+        try:
+            response = urlfetch.fetch(mirrored_url, headers={
+                'User-Agent': user_agent,
+                'App-Engine': 'true',
+                'Real-Ip': ip,
+                'Referer': referer
+            })
+        except (urlfetch.Error, apiproxy_errors.Error):
+            logging.info("Could not fetch URL")
+            return None
 
-    content = response.content
-    #logging.info("content '%s'", content)
-    page_content_type = adjusted_headers.get("content-type", "")
-    for content_type in TRANSFORMED_CONTENT_TYPES:
-      # startswith() because there could be a 'charset=UTF-8' in the header.
-      if page_content_type.startswith(content_type):
-        content = transform_content.TransformContent(base_url, mirrored_url, content)
-        break
+        adjusted_headers = {}
+        for key, value in response.headers.iteritems():
+            adjusted_key = key.lower()
+            if adjusted_key not in IGNORE_HEADERS:
+                adjusted_headers[adjusted_key] = value
 
-    new_content = MirroredContent(
-      base_url=base_url,
-      original_address=mirrored_url,
-      translated_address=translated_address,
-      status=response.status_code,
-      headers=adjusted_headers,
-      data=content)
+        content = response.content
+        # logging.info("content '%s'", content)
+        page_content_type = adjusted_headers.get("content-type", "")
+        for content_type in TRANSFORMED_CONTENT_TYPES:
+            # startswith() because there could be a 'charset=UTF-8' in the header.
+            if page_content_type.startswith(content_type):
+                content = transform_content.TransformContent(base_url, mirrored_url, content)
+                break
 
-    return new_content
+        new_content = MirroredContent(
+            base_url=base_url,
+            original_address=mirrored_url,
+            translated_address=translated_address,
+            status=response.status_code,
+            headers=adjusted_headers,
+            data=content)
+
+        return new_content
+
 
 ###############################################################################
 
 class WarmupHandler(webapp2.RequestHandler):
-  def get(self):
-    pass
+    def get(self):
+        pass
+
 
 class BaseHandler(webapp2.RequestHandler):
-  def get_relative_url(self):
-    slash = self.request.url.find("/", len(self.request.scheme + "://"))
-    if slash == -1:
-      return "/"
-    return self.request.url[slash:]
-  def is_recursive_request(self):
-    if "AppEngine-Google" in self.request.headers.get("User-Agent", ""):
-      logging.warning("Ignoring recursive request by user-agent=%r; ignoring")
-      self.error(404)
-      return True
-    return False
+    def get_relative_url(self):
+        slash = self.request.url.find("/", len(self.request.scheme + "://"))
+        if slash == -1:
+            return "/"
+        return self.request.url[slash:]
+
+    def is_recursive_request(self):
+        if "AppEngine-Google" in self.request.headers.get("User-Agent", ""):
+            logging.warning("Ignoring recursive request by user-agent=%r; ignoring")
+            self.error(404)
+            return True
+        return False
+
 
 class MirrorHandler(BaseHandler):
-  def get(self, base_url):
+    def get(self, base_url):
 
-    if self.is_recursive_request():
-      return
+        if self.is_recursive_request():
+            return
 
-    base_url = 'igrovyeavtomatyc.com'
+        base_url = 'igrovyeavtomatyc.com'
 
-    # Log the user-agent and referrer, to see who is linking to us.
-    #logging.info('User-Agent = "%s", Referrer = "%s"', self.request.user_agent, self.request.referer)
-    #logging.info('Base_url = "%s", url = "%s"', base_url, self.request.url)
+        # Log the user-agent and referrer, to see who is linking to us.
+        # logging.info('User-Agent = "%s", Referrer = "%s"', self.request.user_agent, self.request.referer)
+        # logging.info('Base_url = "%s", url = "%s"', base_url, self.request.url)
 
-    translated_address = self.get_relative_url()  # remove leading /
-    logging.info("translated_address '%s'", translated_address)
-    mirrored_url = HTTPS_PREFIX + base_url + translated_address
+        translated_address = self.get_relative_url()  # remove leading /
+        logging.info("translated_address '%s'", translated_address)
+        mirrored_url = HTTPS_PREFIX + base_url + translated_address
 
-    #logging.info("Handling request for '%s'", mirrored_url)
+        # logging.info("Handling request for '%s'", mirrored_url)
 
-    content = MirroredContent.fetch_and_store(base_url, translated_address, mirrored_url, self.request.headers.get("User-Agent", ""), self.request.headers.get("Referer", ""))
+        content = MirroredContent.fetch_and_store(base_url, translated_address, mirrored_url,
+                                                  self.request.headers.get("User-Agent", ""),
+                                                  self.request.headers.get("Referer", ""),
+                                                  self.request.remote_addr)
 
-    if content is None:
-      return self.error(404)
+        if content is None:
+            return self.error(404)
 
-    for key, value in content.headers.iteritems():
-      self.response.headers[key] = value
-    if not DEBUG:
-      self.response.headers["cache-control"] = \
-        "max-age=%d" % EXPIRATION_DELTA_SECONDS
+        for key, value in content.headers.iteritems():
+            self.response.headers[key] = value
+        if not DEBUG:
+            self.response.headers["cache-control"] = \
+                "max-age=%d" % EXPIRATION_DELTA_SECONDS
 
-    self.response.out.write(content.data)
+        self.response.out.write(content.data)
+
 
 class HomeHandler(BaseHandler):
-  def get(self):
+    def get(self):
 
-    if self.is_recursive_request():
-      return
+        if self.is_recursive_request():
+            return
 
-    form_url = HTTPS_PREFIX + 'igrovyeavtomatyc.com'
-    if form_url:
-      # Accept URLs that still have a leading 'http://'
-      inputted_url = urllib.unquote(form_url)
-      logging.info("inputted_url '%s'", inputted_url)
+        form_url = HTTPS_PREFIX + 'igrovyeavtomatyc.com'
+        if form_url:
+            # Accept URLs that still have a leading 'http://'
+            inputted_url = urllib.unquote(form_url)
+            logging.info("inputted_url '%s'", inputted_url)
 
-      content = MirroredContent.fetch_and_store(form_url, form_url, form_url, self.request.headers.get("User-Agent", ""), self.request.headers.get("Referer", ""))
+            content = MirroredContent.fetch_and_store(form_url, form_url, form_url,
+                                                      self.request.headers.get("User-Agent", ""),
+                                                      self.request.headers.get("Referer", ""),
+                                                      self.request.remote_addr)
 
-      if content is None:
-        return self.error(404)
+            if content is None:
+                return self.error(404)
 
-      for key, value in content.headers.iteritems():
-        self.response.headers[key] = value
-      if not DEBUG:
-        self.response.headers["cache-control"] = \
-          "max-age=%d" % EXPIRATION_DELTA_SECONDS
+            for key, value in content.headers.iteritems():
+                self.response.headers[key] = value
+            if not DEBUG:
+                self.response.headers["cache-control"] = \
+                    "max-age=%d" % EXPIRATION_DELTA_SECONDS
 
-      self.response.out.write(content.data)
+            self.response.out.write(content.data)
+
 
 ###############################################################################
 
 app = webapp2.WSGIApplication([
-  (r"/", HomeHandler),
-  (r"/([^/]+).*", MirrorHandler),
-  (r"/_ah/warmup", WarmupHandler),
+    (r"/", HomeHandler),
+    (r"/([^/]+).*", MirrorHandler),
+    (r"/_ah/warmup", WarmupHandler),
 ], debug=DEBUG)
